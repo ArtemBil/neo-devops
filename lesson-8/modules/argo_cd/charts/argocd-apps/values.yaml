@@ -1,0 +1,14 @@
+repositories:
+  - name: ${repository_name}
+    url: ${repository_url}
+    username: ${repository_username}
+    password: ${repository_password}
+
+applications:
+  - name: ${application_name}
+    namespace: argocd
+    destinationNamespace: ${destination_namespace}
+    sourceRepoURL: ${source_repo_url}
+    sourceTargetRevision: ${source_target_revision}
+    sourcePath: ${source_path}
+    clusterURL: ${cluster_url}

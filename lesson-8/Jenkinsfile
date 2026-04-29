@@ -1,0 +1,92 @@
+pipeline {
+  agent {
+    kubernetes {
+      label 'kaniko-git'
+      defaultContainer 'kaniko'
+      yaml """
+apiVersion: v1
+kind: Pod
+spec:
+  serviceAccountName: jenkins
+  containers:
+    - name: kaniko
+      image: gcr.io/kaniko-project/executor:latest
+      command:
+        - /busybox/cat
+      tty: true
+      volumeMounts:
+        - name: docker-config
+          mountPath: /kaniko/.docker
+    - name: git
+      image: alpine/git:2.45.2
+      command:
+        - cat
+      tty: true
+  volumes:
+    - name: docker-config
+      emptyDir: {}
+"""
+    }
+  }
+
+  environment {
+    AWS_REGION            = 'us-west-2'
+    IMAGE_REPOSITORY      = credentials('ecr-repository-url')
+    GITOPS_REPOSITORY     = 'https://github.com/your-org/your-gitops-repo.git'
+    GITOPS_BRANCH         = 'main'
+    GITOPS_VALUES_PATH    = 'charts/django-app/values.yaml'
+    AWS_ACCOUNT_ID        = credentials('aws-account-id')
+  }
+
+  stages {
+    stage('Checkout App Source') {
+      steps {
+        checkout scm
+      }
+    }
+
+    stage('Build and Push Image') {
+      steps {
+        container('kaniko') {
+          sh '''
+            export IMAGE_TAG=${BUILD_NUMBER}
+            mkdir -p /kaniko/.docker
+            cat > /kaniko/.docker/config.json <<EOF
+            {
+              "credsStore": "ecr-login"
+            }
+            EOF
+
+            /kaniko/executor \
+              --context "${WORKSPACE}" \
+              --dockerfile "${WORKSPACE}/Dockerfile" \
+              --destination "${IMAGE_REPOSITORY}:${IMAGE_TAG}" \
+              --destination "${IMAGE_REPOSITORY}:latest"
+          '''
+        }
+      }
+    }
+
+    stage('Update GitOps Repo') {
+      steps {
+        container('git') {
+          withCredentials([usernamePassword(credentialsId: 'github-https-creds', usernameVariable: 'GIT_USERNAME', passwordVariable: 'GIT_TOKEN')]) {
+            sh '''
+              export IMAGE_TAG=${BUILD_NUMBER}
+              rm -rf gitops-repo
+              git clone --branch "${GITOPS_BRANCH}" "https://${GIT_USERNAME}:${GIT_TOKEN}@${GITOPS_REPOSITORY#https://}" gitops-repo
+              cd gitops-repo
+              sed -i '' -e "s#^  tag: .*#  tag: ${IMAGE_TAG}#g" "${GITOPS_VALUES_PATH}" 2>/dev/null || \
+              sed -i -e "s#^  tag: .*#  tag: ${IMAGE_TAG}#g" "${GITOPS_VALUES_PATH}"
+              git config user.email "jenkins@local"
+              git config user.name "Jenkins"
+              git add "${GITOPS_VALUES_PATH}"
+              git commit -m "ci: update django image tag to ${IMAGE_TAG}" || true
+              git push origin "${GITOPS_BRANCH}"
+            '''
+          }
+        }
+      }
+    }
+  }
+}
