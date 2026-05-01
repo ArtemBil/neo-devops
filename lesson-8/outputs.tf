@@ -43,3 +43,18 @@ output "argocd_initial_admin_password" {
   value       = module.argo_cd.argocd_initial_admin_password
   sensitive   = true
 }
+
+output "rds_endpoint" {
+  description = "Writer endpoint of the created database"
+  value       = module.rds.endpoint
+}
+
+output "rds_reader_endpoint" {
+  description = "Reader endpoint for Aurora"
+  value       = module.rds.reader_endpoint
+}
+
+output "rds_security_group_id" {
+  description = "Security group attached to the database"
+  value       = module.rds.security_group_id
+}

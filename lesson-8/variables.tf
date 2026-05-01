@@ -202,3 +202,112 @@ variable "common_tags" {
     ManagedBy   = "Terraform"
   }
 }
+
+variable "rds_identifier" {
+  description = "Base identifier used for RDS resources"
+  type        = string
+  default     = "lesson-8-db"
+}
+
+variable "rds_use_aurora" {
+  description = "Create Aurora instead of a standalone RDS instance"
+  type        = bool
+  default     = false
+}
+
+variable "rds_engine" {
+  description = "Database engine used by the RDS module"
+  type        = string
+  default     = "postgres"
+}
+
+variable "rds_engine_version" {
+  description = "Database engine version used by the RDS module"
+  type        = string
+  default     = "15.4"
+}
+
+variable "rds_instance_class" {
+  description = "Instance class for the RDS module"
+  type        = string
+  default     = "db.t3.medium"
+}
+
+variable "rds_db_name" {
+  description = "Initial database name"
+  type        = string
+  default     = "appdb"
+}
+
+variable "rds_username" {
+  description = "Master username for the database"
+  type        = string
+  default     = "dbadmin"
+}
+
+variable "rds_password" {
+  description = "Master password for the database"
+  type        = string
+  default     = "change-me-db-password"
+  sensitive   = true
+}
+
+variable "rds_allowed_cidr_blocks" {
+  description = "CIDR blocks allowed to connect to the database"
+  type        = list(string)
+  default     = ["10.0.0.0/16"]
+}
+
+variable "rds_allowed_security_group_ids" {
+  description = "Security groups allowed to connect to the database"
+  type        = list(string)
+  default     = []
+}
+
+variable "rds_multi_az" {
+  description = "Enable Multi-AZ for standalone RDS"
+  type        = bool
+  default     = false
+}
+
+variable "rds_allocated_storage" {
+  description = "Allocated storage for standalone RDS in GiB"
+  type        = number
+  default     = 20
+}
+
+variable "rds_max_allocated_storage" {
+  description = "Maximum autoscaled storage for standalone RDS in GiB"
+  type        = number
+  default     = 100
+}
+
+variable "rds_publicly_accessible" {
+  description = "Create a public endpoint for the database"
+  type        = bool
+  default     = false
+}
+
+variable "rds_backup_retention_period" {
+  description = "Automated backup retention in days"
+  type        = number
+  default     = 7
+}
+
+variable "rds_deletion_protection" {
+  description = "Enable deletion protection for the database"
+  type        = bool
+  default     = false
+}
+
+variable "rds_skip_final_snapshot" {
+  description = "Skip final snapshot when the database is destroyed"
+  type        = bool
+  default     = true
+}
+
+variable "rds_apply_immediately" {
+  description = "Apply RDS changes immediately"
+  type        = bool
+  default     = true
+}

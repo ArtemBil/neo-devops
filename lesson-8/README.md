@@ -57,6 +57,7 @@ lesson-8/
 - `vpc` creates the AWS network required for EKS, Jenkins, and Argo CD.
 - `ecr` creates an ECR repository for the Django image.
 - `eks` creates the EKS cluster, managed node group, IAM roles, and the EBS CSI driver addon.
+- `rds` creates either a standalone RDS instance or an Aurora cluster, together with subnet, security, and parameter groups.
 - `jenkins` installs Jenkins via Helm and prepares it for Kubernetes agents.
 - `argo_cd` installs Argo CD via Helm and creates an Argo CD Application that watches the Helm chart in Git.
 
@@ -97,6 +98,47 @@ Before running the full flow, update these variables in Terraform:
 - `gitops_repository_username`
 - `gitops_repository_password`
 - `jenkins_admin_password`
+- `rds_password`
+
+## RDS module
+
+The reusable module lives in `modules/rds` and supports both deployment modes:
+
+- `rds_use_aurora = false` creates one `aws_db_instance`
+- `rds_use_aurora = true` creates `aws_rds_cluster` + one writer instance
+
+The root module already wires it to the private subnets from the VPC module.
+
+### Example
+
+```hcl
+module "rds" {
+  source = "./modules/rds"
+
+  identifier          = "lesson-8-db"
+  use_aurora          = false
+  engine              = "postgres"
+  engine_version      = "15.4"
+  instance_class      = "db.t3.medium"
+  db_name             = "appdb"
+  username            = "dbadmin"
+  password            = var.rds_password
+  vpc_id              = module.vpc.vpc_id
+  subnet_ids          = module.vpc.private_subnet_ids
+  allowed_cidr_blocks = [var.vpc_cidr_block]
+  multi_az            = true
+}
+```
+
+To switch database type, change:
+
+- `rds_use_aurora`
+- `rds_engine`
+- `rds_engine_version`
+- `rds_instance_class`
+- `rds_multi_az`
+
+For full variable documentation, see `modules/rds/README.md`.
 
 In Jenkins, make sure these credentials exist:
 - `github-https-creds`
