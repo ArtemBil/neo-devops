@@ -1,0 +1,68 @@
+controller:
+  admin:
+    username: ${admin_user}
+    password: ${admin_password}
+  installPlugins:
+    - kubernetes:4253.v7700d91739e5
+    - workflow-aggregator:596.v8c21c963d92d
+    - git:5.2.1
+    - configuration-as-code:1810.v9b_c30a_249a_4c
+    - job-dsl:1.87
+  JCasC:
+    defaultConfig: true
+    configScripts:
+      jobs: |
+        jobs:
+          - script: >
+              pipelineJob('django-cicd') {
+                definition {
+                  cpsScm {
+                    scm {
+                      git {
+                        remote {
+                          url('${github_repository_url}')
+                        }
+                        branch('${github_branch}')
+                      }
+                    }
+                    scriptPath('${jenkinsfile_path}')
+                  }
+                }
+              }
+  serviceType: LoadBalancer
+  servicePort: 8080
+  resources:
+    requests:
+      cpu: "500m"
+      memory: "1Gi"
+    limits:
+      cpu: "1"
+      memory: "2Gi"
+  ingress:
+    enabled: false
+agent:
+  enabled: true
+  components:
+    - name: jnlp
+      image: jenkins/inbound-agent:latest-jdk17
+  podTemplates:
+    kaniko-git: |
+      - name: kaniko-git
+        label: kaniko-git
+        serviceAccount: jenkins
+        containers:
+          - name: kaniko
+            image: gcr.io/kaniko-project/executor:latest
+            command: '/busybox/cat'
+            ttyEnabled: true
+          - name: git
+            image: alpine/git:2.45.2
+            command: 'cat'
+            ttyEnabled: true
+persistence:
+  enabled: true
+  size: 20Gi
+serviceAccount:
+  create: true
+rbac:
+  create: true
